@@ -169,7 +169,7 @@ export function EarlyAccessSection() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <div className="p-4 rounded-lg bg-error-container/20 border border-error/40 flex items-start gap-3 text-xs text-error">
+                <div role="alert" className="p-4 rounded-lg bg-error-container/20 border border-error/40 flex items-start gap-3 text-xs text-error">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -178,12 +178,14 @@ export function EarlyAccessSection() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Full Name */}
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="ea-fullname" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Full Name <span className="text-secondary-container">*</span>
                   </label>
                   <input
+                    id="ea-fullname"
                     type="text"
                     required
+                    aria-required="true"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Alex Rivera"
@@ -193,12 +195,14 @@ export function EarlyAccessSection() {
 
                 {/* Email Address */}
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="ea-email" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Email Address <span className="text-secondary-container">*</span>
                   </label>
                   <input
+                    id="ea-email"
                     type="email"
                     required
+                    aria-required="true"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex@domain.com"
@@ -210,12 +214,14 @@ export function EarlyAccessSection() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Country / Operating Region */}
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="ea-country" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Country / Operating Region <span className="text-secondary-container">*</span>
                   </label>
                   <input
+                    id="ea-country"
                     type="text"
                     required
+                    aria-required="true"
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     placeholder="e.g. Spain, Chile, United States"
@@ -225,10 +231,11 @@ export function EarlyAccessSection() {
 
                 {/* Test Device Model */}
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="ea-device" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Primary Android Device Model
                   </label>
                   <input
+                    id="ea-device"
                     type="text"
                     value={deviceModel}
                     onChange={(e) => setDeviceModel(e.target.value)}
@@ -240,10 +247,11 @@ export function EarlyAccessSection() {
 
               {/* Dynamic Segment Note */}
               <div className="space-y-1.5">
-                <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                <label htmlFor="ea-intended-use" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                   {segmentConfig[selectedSegment].fieldLabel}
                 </label>
                 <input
+                  id="ea-intended-use"
                   type="text"
                   value={intendedUse}
                   onChange={(e) => setIntendedUse(e.target.value)}
@@ -253,10 +261,12 @@ export function EarlyAccessSection() {
               </div>
 
               {/* Privacy Consent Checkbox */}
-              <label className="flex items-start gap-3 cursor-pointer pt-2 select-none">
+              <label htmlFor="ea-consent" className="flex items-start gap-3 cursor-pointer pt-2 select-none">
                 <input
+                  id="ea-consent"
                   type="checkbox"
                   required
+                  aria-required="true"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                   className="mt-1 rounded bg-surface-container-lowest border-white/[0.2] text-primary focus:ring-0 w-4 h-4"
@@ -297,3 +307,4 @@ export function EarlyAccessSection() {
     </section>
   );
 }
+

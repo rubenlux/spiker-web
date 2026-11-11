@@ -43,3 +43,4 @@ export interface CapabilityItem {
   description: string;
   items: string[];
 }
+

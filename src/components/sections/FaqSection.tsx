@@ -39,7 +39,9 @@ export function FaqSection() {
               >
                 <button
                   type="button"
+                  id={`faq-btn-${item.id}`}
                   aria-expanded={isOpen}
+                  aria-controls={`faq-panel-${item.id}`}
                   onClick={() => toggle(idx)}
                   className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-display font-semibold text-base sm:text-lg text-white hover:text-secondary-container transition-colors focus:outline-none focus:ring-1 focus:ring-secondary-container"
                 >
@@ -57,7 +59,12 @@ export function FaqSection() {
                 </button>
 
                 {isOpen && (
-                  <div className="px-5 sm:px-6 pb-6 pt-1 font-sans text-sm text-on-surface-variant leading-relaxed border-t border-white/[0.04] animate-in fade-in duration-150">
+                  <div
+                    id={`faq-panel-${item.id}`}
+                    role="region"
+                    aria-labelledby={`faq-btn-${item.id}`}
+                    className="px-5 sm:px-6 pb-6 pt-1 font-sans text-sm text-on-surface-variant leading-relaxed border-t border-white/[0.04] animate-in fade-in duration-150"
+                  >
                     {item.answer}
                   </div>
                 )}
@@ -69,3 +76,4 @@ export function FaqSection() {
     </section>
   );
 }
+

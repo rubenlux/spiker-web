@@ -136,3 +136,4 @@ To maintain absolute credibility as an international technology startup, the web
   - Standardized emergency SOS broadcast beacons.
   - Public developer SDKs.
 - **Physical RF Reality Disclosed**: Range is explicitly stated as line-of-sight dependent (~50-90m outdoors), subject to RF attenuation through reinforced concrete, metal structures, and local interference. No impossible claims (such as multi-mile smartphone Bluetooth range without relays) are made.
+

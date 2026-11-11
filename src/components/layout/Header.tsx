@@ -19,10 +19,20 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile drawer on route change
+  // Close mobile drawer on route change or Escape key
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
 
   const navItems = [
     { href: "/technology", label: "Technology" },
@@ -95,6 +105,7 @@ export function Header() {
             type="button"
             aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation-drawer"
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden p-2 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors focus:outline-none focus:ring-1 focus:ring-secondary-container"
           >
@@ -105,7 +116,12 @@ export function Header() {
 
       {/* Accessible Mobile Navigation Drawer */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-white/[0.08] bg-[#060E1C] px-5 py-6 space-y-4 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+        <div
+          id="mobile-navigation-drawer"
+          role="navigation"
+          aria-label="Mobile Navigation"
+          className="lg:hidden border-t border-white/[0.08] bg-[#060E1C] px-5 py-6 space-y-4 shadow-2xl animate-in slide-in-from-top-2 duration-200"
+        >
           <div className="flex flex-col space-y-1">
             <Link
               href="/#product-experience"
@@ -202,3 +218,4 @@ export function Header() {
     </header>
   );
 }
+

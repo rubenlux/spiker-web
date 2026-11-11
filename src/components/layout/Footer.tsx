@@ -19,8 +19,8 @@ export function Footer() {
               Engineered for off-grid resilience and direct peer communications. Enabling local device-to-device radio messaging across compatible consumer smartphone hardware without cellular network or Internet dependency.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-white/[0.08] text-xs font-mono text-on-surface-variant">
-              <span className="w-2 h-2 rounded-full bg-secondary-container animate-pulse" />
-              <span>RF PHY: BLE 2.4 GHz + Wi-Fi Direct</span>
+              <span className="w-2 h-2 rounded-full bg-secondary-container" />
+              <span>RF ARCHITECTURE: BLE 2.4 GHz + WI-FI DIRECT</span>
             </div>
           </div>
 
@@ -123,34 +123,34 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Telemetry Status Column */}
+          {/* Protocol Specifications Column */}
           <div className="md:col-span-3 space-y-3">
             <span className="font-mono text-xs uppercase tracking-widest text-outline block">
-              Protocol Diagnostics
+              Protocol Specifications
             </span>
             <div className="p-4 rounded-xl bg-surface-container-low border border-white/[0.08] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-secondary-container" />
                   <span className="font-mono text-xs text-secondary-container font-semibold">
-                    STATUS: OPERATIONAL
+                    RF SPECIFICATION
                   </span>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-secondary-container animate-ping" />
+                <span className="font-mono text-[10px] text-outline">P2P RADIO</span>
               </div>
 
               <div className="space-y-1.5 pt-1 text-[11px] font-mono text-on-surface-variant border-t border-white/[0.05]">
                 <div className="flex justify-between">
                   <span>DISCOVERY:</span>
-                  <span className="text-on-surface">BLE BEACONS</span>
+                  <span className="text-on-surface">BLE 2.4 GHz</span>
                 </div>
                 <div className="flex justify-between">
                   <span>SOCKET:</span>
                   <span className="text-on-surface">AD-HOC WI-FI P2P</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>INFRASTRUCTURE:</span>
-                  <span className="text-secondary-container">100% OFFLINE</span>
+                  <span>TOPOLOGY:</span>
+                  <span className="text-secondary-container">INFRASTRUCTURE-FREE</span>
                 </div>
               </div>
             </div>

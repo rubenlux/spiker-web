@@ -5,7 +5,7 @@ export const SITE_CONFIG = {
   tagline: "Communication without Internet.",
   headline: "Stay connected when the world goes offline.",
   description:
-    "SPIKER is an offline communication platform engineered to enable nearby compatible smartphones to communicate directly using Bluetooth and Wi-Fi Direct technologies, without requiring cellular networks or Internet connectivity.",
+    "SPIKER is an emerging offline communication platform designed to enable nearby compatible smartphones to communicate directly using Bluetooth and Wi-Fi Direct technologies, without requiring cellular networks or Internet connectivity.",
   url: "https://spiker.network",
   ogImage: "/images/hero/hero-phones-3d.jpg",
   links: {
@@ -63,8 +63,8 @@ export const HOW_IT_WORKS_STEPS = [
     title: "Discover",
     sub: "Bluetooth Low Energy (BLE)",
     description:
-      "When SPIKER is open or running in passive search mode, devices emit low-energy beacons. Nearby peers discover each other automatically and populate a real-time local proximity directory.",
-    detail: "Direct RF beaconing without cloud phonebook queries.",
+      "When the app is active or in discovery mode, compatible devices emit low-energy beacons. Nearby peers discover each other locally and populate a device directory without cloud phonebook queries.",
+    detail: "RF beaconing concept without centralized directory lookups.",
     icon: "Radar",
   },
   {
@@ -72,17 +72,17 @@ export const HOW_IT_WORKS_STEPS = [
     title: "Connect",
     sub: "Autonomous Peer Handshake",
     description:
-      "When you initiate a conversation or select a discovered contact, compatible devices negotiate an ad-hoc local socket directly between their wireless chipsets.",
-    detail: "Zero intermediary router or access point required.",
+      "When initiating a conversation, compatible devices negotiate an ad-hoc local socket directly between their wireless chipsets.",
+    detail: "Direct device-to-device socket negotiation target.",
     icon: "Shuffle",
   },
   {
     step: "03",
     title: "Communicate",
-    sub: "High-Speed Wi-Fi Direct Transport",
+    sub: "Direct Local Payload Transport",
     description:
-      "Payloads—including text messages, offline coordinate markers, and compressed voice notes—transmit over an ad-hoc Wi-Fi Direct link at broadband speeds.",
-    detail: "Physical radio acknowledgment receipt indicators.",
+      "Text messages and data payloads transfer directly across local radio channels between participating hardware chipsets.",
+    detail: "Physical radio acknowledgment receipt concept.",
     icon: "Wifi",
   },
 ];
@@ -94,7 +94,7 @@ export const USE_CASES_DATA: UseCaseItem[] = [
     domain: "RESCUE & RESILIENCE",
     badge: "PREPAREDNESS",
     description:
-      "When hurricanes, earthquakes, or municipal grid disruptions knock down cell towers, maintain hyper-local coordination between family members, community volunteers, and civilian aid squads within radio range.",
+      "When hurricanes, earthquakes, or municipal grid disruptions knock down cell towers, maintain local coordination between family members, community volunteers, and civilian aid squads within radio range.",
     icon: "AlertTriangle",
     features: [
       "Neighborhood radio check-in",
@@ -140,8 +140,8 @@ export const USE_CASES_DATA: UseCaseItem[] = [
     icon: "Users",
     features: [
       "Bypasses congested commercial cell towers",
-      "Instant 1-to-1 friend location pinging",
-      "Battery-efficient BLE standby",
+      "Direct peer proximity communication",
+      "Battery-conscious standby design",
     ],
   },
   {
@@ -176,44 +176,44 @@ export const USE_CASES_DATA: UseCaseItem[] = [
 
 export const CAPABILITY_MATRIX: CapabilityItem[] = [
   {
-    title: "Currently Implemented",
+    title: "Validated in Internal Prototypes",
     stage: "CURRENT",
-    stageLabel: "VERIFIED IN INTERNAL BUILDS",
+    stageLabel: "VERIFIED IN BENCHMARK PROTOTYPES",
     stageColor: "text-secondary-container border-secondary-container/30 bg-secondary-container/10",
     description:
-      "Fully operational and verified under laboratory and physical test conditions on supported Android hardware:",
+      "Demonstrated under laboratory and bench-testing conditions on select compatible Android test hardware:",
     items: [
-      "Direct peer discovery via Bluetooth Low Energy (BLE) background advertising and scanning.",
-      "Local 1-to-1 offline text messaging between paired compatible phones.",
-      "Ad-hoc Wi-Fi Direct socket negotiation without external routers or mobile hotspots.",
-      "Local-first message storage with physical RF transmission delivery status indicators.",
+      "Peer discovery via Bluetooth Low Energy (BLE) advertisement packets on supported Android devices.",
+      "Direct 1-to-1 offline text messaging prototype across local radio link.",
+      "Ad-hoc Wi-Fi Direct socket negotiation between compatible test devices in proximity.",
+      "Local-first message storage with RF packet delivery state tracking in local device database.",
     ],
   },
   {
-    title: "In Active Development",
+    title: "In Active Engineering",
     stage: "DEVELOPMENT",
-    stageLabel: "ENGINEERING IN PROGRESS",
+    stageLabel: "UNDER ACTIVE DEVELOPMENT",
     stageColor: "text-primary border-primary/30 bg-primary/10",
     description:
-      "Currently under active implementation, protocol hardening, and automated regression testing:",
+      "Currently in active development, automated protocol testing, and stability optimization:",
     items: [
-      "Encrypted local group channels for small clusters and incident squads.",
-      "Low-bandwidth compressed voice notes over direct peer-to-peer radio channels.",
-      "Automated background reconnection logic when peers temporarily drop out of RF line-of-sight.",
-      "Cross-platform research assessing iOS background radio execution and framework boundaries.",
+      "Local cluster group messaging protocol for small operational teams.",
+      "Low-bandwidth compressed audio transmission over direct local radio sockets.",
+      "Automated session reconnect algorithms after temporary physical line-of-sight drop.",
+      "Cross-platform research investigating iOS background execution constraints and interoperability.",
     ],
   },
   {
-    title: "Future Possibilities",
+    title: "Research & Long-Term Design",
     stage: "EXPLORATION",
-    stageLabel: "RESEARCH & DESIGN",
+    stageLabel: "RESEARCH PHASE",
     stageColor: "text-on-surface-variant border-outline-variant/30 bg-surface-container-high",
     description:
-      "Longer-term architectural investigations planned for future decentralized protocol iterations:",
+      "Architectural studies and early protocol exploration for future revisions:",
     items: [
-      "Multi-hop mesh relay protocols across intermediate peer hops to extend effective geographical span.",
-      "Standardized offline emergency SOS radio beacons receivable by any nearby compatible device.",
-      "Developer SDKs and API libraries allowing third-party apps to build on the SPIKER RF physical layer.",
+      "Multi-hop mesh relay protocols across intermediate peer hops to extend effective geographical range.",
+      "Standardized offline emergency SOS radio beacon format for open receiver interoperability.",
+      "Public developer SDKs and library bindings for third-party off-grid applications.",
     ],
   },
 ];
@@ -223,19 +223,19 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: "faq-1",
     question: "Does SPIKER require Internet access or cellular coverage?",
     answer:
-      "No. SPIKER operates directly over the built-in Bluetooth and Wi-Fi Direct radios already present in modern smartphones. Your data never traverses telecom gateways, public DNS servers, or cloud servers.",
+      "No. SPIKER is designed to operate directly over the internal Bluetooth and Wi-Fi Direct radios on compatible smartphones. When operating offline, data does not traverse telecommunication gateways, satellite networks, or public DNS servers.",
   },
   {
     id: "faq-2",
-    question: "How does SPIKER work completely offline?",
+    question: "How does SPIKER work offline?",
     answer:
-      "SPIKER combines two complementary wireless radios: Bluetooth Low Energy emits small, energy-efficient beacon signals that let nearby devices find each other in standby. When a transmission occurs, the devices establish an autonomous, peer-to-peer Wi-Fi Direct socket directly across the air to transfer text, coordinates, or audio payloads at broadband speeds.",
+      "SPIKER combines two complementary wireless radios: Bluetooth Low Energy emits small, energy-efficient beacon signals that let nearby devices find each other in standby. When a transmission occurs, the devices establish an autonomous, peer-to-peer Wi-Fi Direct socket directly across the air to transfer text, coordinates, or audio payloads without an external router.",
   },
   {
     id: "faq-3",
     question: "Does SPIKER use Bluetooth?",
     answer:
-      "Yes. Bluetooth Low Energy (BLE) is used specifically for discovery and proximity sensing. Its minimal power consumption allows the app to detect compatible peers nearby without rapidly draining your phone's battery.",
+      "Yes. Bluetooth Low Energy (BLE) is utilized for discovery and proximity sensing. Its minimal power draw allows the app to detect compatible peers nearby without rapidly draining phone batteries.",
   },
   {
     id: "faq-4",
@@ -247,30 +247,30 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: "faq-5",
     question: "Can SPIKER work without cellular coverage?",
     answer:
-      "Yes. Cellular service is completely irrelevant to SPIKER's operation. You can be in airplane mode with Bluetooth and Wi-Fi turned on, in a remote mountain valley, or in a deep basement, and SPIKER will communicate directly with nearby peers.",
+      "Yes. Cellular network service is not required for local peer-to-peer radio communication. Compatible devices within direct physical radio range can communicate even in airplane mode (with Wi-Fi and Bluetooth enabled) or in deep remote areas.",
   },
   {
     id: "faq-6",
-    question: "Which devices and operating systems are supported?",
+    question: "Which devices are supported?",
     answer:
-      "Initial development builds target Android smartphones running modern versions with standard BLE and Wi-Fi Direct hardware support. We are actively researching iOS background execution models to evaluate cross-platform compatibility boundaries.",
+      "Development prototypes target Android smartphones running Android 8.0 or newer with hardware support for BLE Peripheral/Central modes and Wi-Fi Direct. We are actively researching iOS background execution models to understand cross-platform interoperability boundaries.",
   },
   {
     id: "faq-7",
-    question: "How far can two devices communicate directly?",
+    question: "How far can devices communicate?",
     answer:
-      "Real-world communication distance is governed by radio physics. In open outdoor line-of-sight conditions, reliable ranges often reach 50 to 90 meters. Indoors through walls, reinforced concrete, or crowded environments, range will vary according to normal 2.4 GHz and 5 GHz RF attenuation.",
+      "Real-world communication distance is governed by radio physics. In open outdoor line-of-sight conditions, reliable ranges often reach 50 to 90 meters. Indoors through walls, reinforced concrete, or crowded environments, range is attenuated according to standard 2.4 GHz and 5 GHz radio propagation characteristics.",
   },
   {
     id: "faq-8",
-    question: "Is SPIKER available to download today?",
+    question: "Is SPIKER available yet?",
     answer:
-      "SPIKER is currently in private development testing cohorts. You can request early access on this website to be included in upcoming Android testing rounds and receive direct developer build updates.",
+      "SPIKER is currently in private development testing cohorts and is not yet publicly released on app stores. You can request early access on this website to participate in upcoming Android prototype testing rounds.",
   },
   {
     id: "faq-9",
-    question: "Can organizations and businesses deploy SPIKER?",
+    question: "Can organizations use SPIKER?",
     answer:
-      "Yes. We collaborate with industrial operators, search-and-rescue teams, event organizers, and humanitarian field squads who require dependable communication when standard telecom networks fail. Contact our enterprise team to discuss pilot cohort testing.",
+      "Yes. Organizations operating in mining, industrial, outdoor, or emergency disaster environments can apply for targeted pilot testing cohorts to evaluate offline peer coordination in their specific physical facilities.",
   },
 ];

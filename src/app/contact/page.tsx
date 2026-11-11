@@ -91,7 +91,7 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="p-4 rounded-lg bg-error-container/20 border border-error/40 flex items-start gap-3 text-xs text-error">
+                <div role="alert" className="p-4 rounded-lg bg-error-container/20 border border-error/40 flex items-start gap-3 text-xs text-error">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -99,12 +99,14 @@ export default function ContactPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="contact-name" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Your Name <span className="text-secondary-container">*</span>
                   </label>
                   <input
+                    id="contact-name"
                     type="text"
                     required
+                    aria-required="true"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jordan Mitchell"
@@ -113,12 +115,14 @@ export default function ContactPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="contact-email" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Work or Personal Email <span className="text-secondary-container">*</span>
                   </label>
                   <input
+                    id="contact-email"
                     type="email"
                     required
+                    aria-required="true"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="jordan@organization.org"
@@ -129,10 +133,11 @@ export default function ContactPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="contact-org" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Company / Organization
                   </label>
                   <input
+                    id="contact-org"
                     type="text"
                     value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
@@ -142,10 +147,11 @@ export default function ContactPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                  <label htmlFor="contact-inquiry-type" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                     Inquiry Nature <span className="text-secondary-container">*</span>
                   </label>
                   <select
+                    id="contact-inquiry-type"
                     value={inquiryType}
                     onChange={(e) => setInquiryType(e.target.value as any)}
                     className="w-full px-4 py-3 bg-surface-container-lowest rounded-lg border border-white/[0.1] text-white font-sans text-sm focus:outline-none focus:border-secondary-container focus:ring-1 focus:ring-secondary-container transition-all"
@@ -159,11 +165,13 @@ export default function ContactPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
+                <label htmlFor="contact-msg" className="font-mono text-xs text-on-surface-variant uppercase tracking-wider block">
                   Detailed Message <span className="text-secondary-container">*</span>
                 </label>
                 <textarea
+                  id="contact-msg"
                   required
+                  aria-required="true"
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -196,3 +204,4 @@ export default function ContactPage() {
     </div>
   );
 }
+

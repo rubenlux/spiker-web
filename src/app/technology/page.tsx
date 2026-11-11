@@ -22,7 +22,7 @@ export default function TechnologyPage() {
             Built on standard consumer hardware. Driven by decentralized RF protocols.
           </h1>
           <p className="font-sans text-base sm:text-lg text-on-surface-variant mt-4 leading-relaxed">
-            SPIKER turns existing consumer smartphones into autonomous, infrastructure-free transceivers. Discover how our dual-radio coordination protocol achieves zero-cloud, direct device-to-device communication.
+            SPIKER turns compatible consumer smartphones into autonomous, infrastructure-free transceivers. Discover how our dual-radio coordination protocol achieves zero-cloud, direct device-to-device communication.
           </p>
         </div>
 
@@ -50,21 +50,21 @@ export default function TechnologyPage() {
             </div>
 
             <p className="font-sans text-sm text-on-surface-variant leading-relaxed">
-              BLE operates on 40 channels across the 2.4 GHz band. Three dedicated advertising channels (37, 38, 39) broadcast micro-beacons with customized SPIKER service identifiers. Receivers continuously listen in low-duty cycles to prevent battery drain.
+              BLE operates on 40 channels across the 2.4 GHz band. Three dedicated advertising channels (37, 38, 39) broadcast micro-beacons with customized SPIKER service identifiers. Receivers listen in low-duty cycles to prevent battery drain.
             </p>
 
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
-                <span className="text-on-surface-variant">Advertising Interval:</span>
-                <span className="text-white">1022.5 ms (Adaptive Standby)</span>
+                <span className="text-on-surface-variant">Target Advertising Interval:</span>
+                <span className="text-white">~1024 ms (Configurable BLE Profile)</span>
               </div>
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
-                <span className="text-on-surface-variant">Proximity Calculation:</span>
-                <span className="text-secondary-container">Log-Distance RSSI Path Loss</span>
+                <span className="text-on-surface-variant">Proximity Model:</span>
+                <span className="text-secondary-container">Log-Distance Relative RSSI Formula</span>
               </div>
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
-                <span className="text-on-surface-variant">Battery Footprint:</span>
-                <span className="text-white">&lt; 1.8% per 8-hour shift</span>
+                <span className="text-on-surface-variant">Design Objective:</span>
+                <span className="text-white">Minimal background battery footprint</span>
               </div>
             </div>
 
@@ -73,7 +73,7 @@ export default function TechnologyPage() {
               <ul className="space-y-2 text-xs font-sans text-on-surface-variant">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-secondary-container" />
-                  <span>Silent passive background peer detection</span>
+                  <span>Passive background peer detection on compatible devices</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-secondary-container" />
@@ -81,7 +81,7 @@ export default function TechnologyPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-secondary-container" />
-                  <span>Autonomous peer listing updates every 2 seconds</span>
+                  <span>Local peer directory updated from received radio frames</span>
                 </li>
               </ul>
             </div>
@@ -114,12 +114,12 @@ export default function TechnologyPage() {
 
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
-                <span className="text-on-surface-variant">Socket Negotiation Latency:</span>
-                <span className="text-white">~350ms to 1200ms</span>
+                <span className="text-on-surface-variant">Socket Negotiation Target:</span>
+                <span className="text-white">Sub-second on optimized chipsets</span>
               </div>
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
-                <span className="text-on-surface-variant">Peak Local Transfer Rate:</span>
-                <span className="text-primary">Up to 240 Mbps (802.11ac)</span>
+                <span className="text-on-surface-variant">Theoretical Physical Ceiling:</span>
+                <span className="text-primary">802.11ac/ax Wi-Fi physical bandwidth</span>
               </div>
               <div className="p-3 rounded-lg bg-surface-container-lowest border border-white/[0.05] flex justify-between">
                 <span className="text-on-surface-variant">Infrastructure Router:</span>
@@ -132,7 +132,7 @@ export default function TechnologyPage() {
               <ul className="space-y-2 text-xs font-sans text-on-surface-variant">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary" />
-                  <span>Transfer compressed voice memos and coordinate files instantly</span>
+                  <span>Transfer compressed audio recordings and coordinate files directly</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -200,6 +200,9 @@ export default function TechnologyPage() {
             </h3>
             <p className="font-sans text-sm text-on-surface-variant leading-relaxed">
               Radio waves obey the inverse-square law and absorption characteristics of matter. In open rural areas with direct line-of-sight, connections routinely achieve 50 to 90 meters. Inside reinforced concrete basements, commercial shipping containers, or heavily shielded industrial plants, maximum effective range will decrease based on physical material attenuation. SPIKER does not claim impossible physics: we optimize transmission protocols to extract maximum range from existing smartphone antennas.
+            </p>
+            <p className="font-mono text-xs text-outline">
+              * Performance parameters cited reflect target protocol engineering baselines and laboratory benchmarks. Actual field metrics vary by device OEM, chipsets, operating system background execution limits, and ambient RF noise.
             </p>
           </div>
         </div>
