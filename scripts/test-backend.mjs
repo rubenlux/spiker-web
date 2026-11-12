@@ -1,12 +1,20 @@
-// Automated Backend Validation Suite for SPIKER Strict PostgreSQL Persistence
+// Automated Backend Validation Suite for SPIKER Strict PostgreSQL Persistence & Security Hardening
 import fs from "fs";
 import path from "path";
-import { checkRateLimit, sanitizeString } from "../src/lib/rateLimit.ts";
+import {
+  checkRateLimit,
+  checkRateLimitAsync,
+  sanitizeString,
+  sanitizeInput,
+  hashClientIdentifier,
+  maskIpAddress,
+  escapeHtml,
+} from "../src/lib/rateLimit.ts";
 import { persistEarlyAccessLead, persistContactInquiry, getSupabaseAdmin } from "../src/lib/supabase.ts";
 
 async function runTestSuite() {
   console.log("=================================================");
-  console.log(" SPIKER STRICT POSTGRESQL ARCHITECTURE AUDIT");
+  console.log(" SPIKER PHASE 3.3 SECURITY & POSTGRESQL AUDIT");
   console.log("=================================================\n");
 
   let passed = 0;
@@ -22,7 +30,7 @@ async function runTestSuite() {
     }
   }
 
-  // TEST SUITE 1: Input Sanitization
+  // TEST SUITE 1: Input Sanitization & Advanced XSS Prevention
   console.log("--- 1. Input Sanitization & Safety ---");
   const dirtyString = "  <script>alert('xss')</script> John Doe \u0000 ";
   const sanitized = sanitizeString(dirtyString, 50);
@@ -34,8 +42,48 @@ async function runTestSuite() {
   const truncated = sanitizeString(longString, 50);
   assert(truncated.length === 50, "Enforces strict character length bounds");
 
-  // TEST SUITE 2: Rate Limiter Token Bucket
-  console.log("\n--- 2. In-Memory Token Bucket Rate Limiting ---");
+  // Advanced sanitization tests: Zero-width characters & bidi overrides
+  const zeroWidthString = "Zero\u200BWidth\uFEFFChar";
+  const cleanZero = sanitizeInput(zeroWidthString, 50);
+  assert(!cleanZero.includes("\u200B") && !cleanZero.includes("\uFEFF"), "Strips invisible zero-width spaces");
+  assert(cleanZero === "ZeroWidthChar", "Preserves underlying text without zero-width bytes");
+
+  // Bidi override attack test (e.g. \u202E right-to-left override)
+  const bidiAttack = "Admin\u202ErotartsinimdA";
+  const cleanBidi = sanitizeInput(bidiAttack, 50);
+  assert(!cleanBidi.includes("\u202E"), "Strips bidirectional override characters");
+
+  // Protocol injection test (javascript: scheme)
+  const dangerousScheme = "javascript:alert(1)";
+  const cleanScheme = sanitizeInput(dangerousScheme, 50);
+  assert(!cleanScheme.toLowerCase().includes("javascript:"), "Strips dangerous javascript: pseudo-protocol");
+
+  // HTML entity escaping
+  const rawHtml = `<img src="x" onerror="alert(1)"> & 'test'`;
+  const escaped = escapeHtml(rawHtml);
+  assert(!escaped.includes("<") && !escaped.includes(">"), "Escapes HTML entities safely");
+  assert(escaped.includes("&lt;img") && escaped.includes("&amp;"), "Encodes tags and ampersands to HTML entities");
+
+  // TEST SUITE 2: IP Hashing & Privacy Masking
+  console.log("\n--- 2. IP Privacy Hashing & Masking ---");
+  const testIp1 = "192.168.1.105";
+  const hash1 = hashClientIdentifier(testIp1);
+  const hash2 = hashClientIdentifier(testIp1);
+  const hashDifferent = hashClientIdentifier("192.168.1.106");
+
+  assert(typeof hash1 === "string" && hash1.length === 64, "Generates 64-character SHA-256 hash");
+  assert(hash1 === hash2, "IP hash is deterministic for same identifier");
+  assert(hash1 !== hashDifferent, "Different IPs generate different hashes");
+  assert(!hash1.includes("192.168"), "Hash does NOT reveal raw IP subnet");
+
+  const maskedIpv4 = maskIpAddress("198.51.100.42");
+  assert(maskedIpv4 === "198.51.***.***", "Properly masks IPv4 address for storage");
+
+  const maskedIpv6 = maskIpAddress("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+  assert(maskedIpv6.startsWith("2001:0db8:****:****"), "Properly masks IPv6 address for storage");
+
+  // TEST SUITE 3: In-Memory & Distributed Rate Limiter
+  console.log("\n--- 3. Rate Limiter (Memory & Fallback) ---");
   const testIp = `test-ip-${Date.now()}`;
   for (let i = 1; i <= 5; i++) {
     const res = checkRateLimit(testIp, 5, 10000);
@@ -45,9 +93,14 @@ async function runTestSuite() {
   assert(exceededRes.allowed === false, "Request #6 exceeds 5-per-window threshold and is rejected");
   assert(exceededRes.remaining === 0, "Remaining tokens reports 0 on rate limit rejection");
 
-  // TEST SUITE 3: Strict Failure When Supabase Is Unconfigured (No Fake Success!)
-  console.log("\n--- 3. Strict Persistence Failure When DB Unconfigured ---");
-  // Temporarily ensure env vars are blank
+  // Async Rate Limiter Fallback (without Redis configured)
+  const asyncIp = `test-async-${Date.now()}`;
+  const asyncRes1 = await checkRateLimitAsync(asyncIp, 5, 10000);
+  assert(asyncRes1.allowed === true, "checkRateLimitAsync allows initial request via fallback");
+  assert(asyncRes1.remaining === 4, "checkRateLimitAsync correctly decrements remaining quota");
+
+  // TEST SUITE 4: Strict Failure When Supabase Is Unconfigured (No Fake Success!)
+  console.log("\n--- 4. Strict Persistence Failure When DB Unconfigured ---");
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   delete process.env.SUPABASE_URL;
@@ -89,8 +142,8 @@ async function runTestSuite() {
   if (originalUrl) process.env.SUPABASE_URL = originalUrl;
   if (originalKey) process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
 
-  // TEST SUITE 4: SQL Migration Schema & API Field Matching
-  console.log("\n--- 4. SQL Schema & Field Reconciliation ---");
+  // TEST SUITE 5: SQL Migration Schema & API Field Matching
+  console.log("\n--- 5. SQL Schema & Field Reconciliation ---");
   const migrationPath = path.resolve(process.cwd(), "supabase/migrations/20260212000000_create_spiker_tables.sql");
   assert(fs.existsSync(migrationPath), "Migration SQL file exists in supabase/migrations/");
 
@@ -119,8 +172,8 @@ async function runTestSuite() {
   // Verify security
   assert(sqlContent.includes("ENABLE ROW LEVEL SECURITY"), "Enforces Row Level Security (RLS) on both tables");
 
-  // TEST SUITE 5: Netlify Configuration Verification
-  console.log("\n--- 5. Netlify Configuration & Headers ---");
+  // TEST SUITE 6: Netlify Configuration Verification
+  console.log("\n--- 6. Netlify Configuration & Headers ---");
   const netlifyTomlPath = path.resolve(process.cwd(), "netlify.toml");
   assert(fs.existsSync(netlifyTomlPath), "netlify.toml exists in root");
 

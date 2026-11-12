@@ -117,3 +117,11 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export async function POST() {
+  return NextResponse.json(
+    { message: "Method Not Allowed. Health probes must use GET." },
+    { status: 405, headers: { Allow: "GET", "X-Content-Type-Options": "nosniff" } }
+  );
+}
+

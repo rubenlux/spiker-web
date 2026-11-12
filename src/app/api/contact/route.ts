@@ -1,16 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkRateLimit, sanitizeString } from "@/lib/rateLimit";
+import {
+  checkRateLimitAsync,
+  sanitizeInput,
+  hashClientIdentifier,
+  maskIpAddress,
+} from "@/lib/rateLimit";
 import { persistContactInquiry } from "@/lib/supabase";
+
+const MAX_PAYLOAD_BYTES = 50 * 1024; // 50 KB
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Rate limiting: max 5 requests per minute per IP
-    const clientIp =
+    // 1. Verify Content-Type header
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unsupported Media Type. Request body must be application/json.",
+        },
+        {
+          status: 415,
+          headers: {
+            "X-Content-Type-Options": "nosniff",
+          },
+        }
+      );
+    }
+
+    // 2. Enforce maximum payload size limit (50 KB)
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Payload Too Large. Maximum allowed submission size is 50KB.",
+        },
+        {
+          status: 413,
+          headers: {
+            "X-Content-Type-Options": "nosniff",
+          },
+        }
+      );
+    }
+
+    // 3. Client IP extraction & privacy hashing for rate limiting
+    const rawIp =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("x-real-ip") ||
       "127.0.0.1";
 
-    const rateLimit = checkRateLimit(`contact:${clientIp}`, 5, 60 * 1000);
+    const anonymizedHash = hashClientIdentifier(rawIp);
+
+    // 4. Distributed / in-memory rate limiting: max 5 requests per minute
+    const rateLimit = await checkRateLimitAsync(`contact:${anonymizedHash}`, 5, 60 * 1000);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
@@ -21,33 +65,41 @@ export async function POST(req: NextRequest) {
           status: 429,
           headers: {
             "Retry-After": "60",
+            "X-Content-Type-Options": "nosniff",
           },
         }
       );
     }
 
-    // 2. Parse & sanitize inputs
+    // 5. Parse & sanitize inputs
     let body: any;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json(
         { success: false, message: "Invalid JSON request payload." },
-        { status: 400 }
+        { status: 400, headers: { "X-Content-Type-Options": "nosniff" } }
       );
     }
 
-    const name = sanitizeString(body.name, 100);
-    const emailRaw = sanitizeString(body.email, 120);
-    const organization = sanitizeString(body.organization, 120);
-    const inquiryTypeRaw = sanitizeString(body.inquiryType, 50);
-    const message = sanitizeString(body.message, 2500);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { success: false, message: "Request payload must be a valid JSON object." },
+        { status: 400, headers: { "X-Content-Type-Options": "nosniff" } }
+      );
+    }
 
-    // 3. Validation
+    const name = sanitizeInput(body.name, 100);
+    const emailRaw = sanitizeInput(body.email, 120);
+    const organization = sanitizeInput(body.organization, 120);
+    const inquiryTypeRaw = sanitizeInput(body.inquiryType, 50);
+    const message = sanitizeInput(body.message, 2500);
+
+    // 6. Validation
     if (!name || name.length < 2) {
       return NextResponse.json(
         { success: false, message: "A valid name (minimum 2 characters) is required." },
-        { status: 400 }
+        { status: 400, headers: { "X-Content-Type-Options": "nosniff" } }
       );
     }
 
@@ -55,14 +107,14 @@ export async function POST(req: NextRequest) {
     if (!emailRaw || !emailRegex.test(emailRaw)) {
       return NextResponse.json(
         { success: false, message: "A valid email address is required (e.g. name@organization.com)." },
-        { status: 400 }
+        { status: 400, headers: { "X-Content-Type-Options": "nosniff" } }
       );
     }
 
     if (!message || message.length < 10) {
       return NextResponse.json(
         { success: false, message: "Please provide a detailed inquiry message (minimum 10 characters)." },
-        { status: 400 }
+        { status: 400, headers: { "X-Content-Type-Options": "nosniff" } }
       );
     }
 
@@ -80,10 +132,10 @@ export async function POST(req: NextRequest) {
       inquiryType,
       message,
       submittedAt: new Date().toISOString(),
-      clientIpMasked: clientIp.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.***.***"),
+      clientIpMasked: maskIpAddress(rawIp),
     };
 
-    // 4. Persistence (Strict Supabase PostgreSQL)
+    // 7. Persistence (Strict Supabase PostgreSQL)
     const dbResult = await persistContactInquiry(inquiryRecord);
 
     if (!dbResult.success) {
@@ -94,14 +146,16 @@ export async function POST(req: NextRequest) {
           errorCode: dbResult.errorCode,
           message: dbResult.message || "Unable to submit inquiry at this time. Please try again shortly.",
         },
-        { status: statusCode }
+        { status: statusCode, headers: { "X-Content-Type-Options": "nosniff" } }
       );
     }
 
     const confirmedTicketId = dbResult.data?.ticketId || ticketId;
-    console.log(`[SPIKER CONTACT INQUIRY STORED IN POSTGRESQL]: ${confirmedTicketId} - ${email} (${inquiryType})`);
+    console.log(
+      `[SPIKER CONTACT INQUIRY STORED IN POSTGRESQL]: ${confirmedTicketId} - ${email} (${inquiryType})`
+    );
 
-    // 5. Configurable Webhook Forwarding (fires ONLY after successful DB storage)
+    // 8. Configurable Webhook Forwarding (fires ONLY after successful DB storage)
     let webhookStatus: "DELIVERED" | "FAILED" | "NOT_CONFIGURED" = "NOT_CONFIGURED";
     const contactWebhookUrl = process.env.CONTACT_WEBHOOK_URL;
 
@@ -143,8 +197,11 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[SPIKER CONTACT API ERROR]:", err);
     return NextResponse.json(
-      { success: false, message: "Internal server processing error. Please try again later." },
-      { status: 500 }
+      {
+        success: false,
+        message: "Internal server processing error. Please try again later.",
+      },
+      { status: 500, headers: { "X-Content-Type-Options": "nosniff" } }
     );
   }
 }
@@ -152,6 +209,6 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json(
     { message: "Method Not Allowed. Inquiries must use POST." },
-    { status: 405, headers: { Allow: "POST" } }
+    { status: 405, headers: { Allow: "POST", "X-Content-Type-Options": "nosniff" } }
   );
 }
