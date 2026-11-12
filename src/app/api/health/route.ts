@@ -1,70 +1,90 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   if (!supabase) {
     return NextResponse.json(
       {
-        status: "DEGRADED",
-        database: "UNCONFIGURED",
-        message: "Supabase credentials are not present in server environment.",
+        status: "degraded",
+        services: {
+          web: "healthy",
+          datastore: "unavailable",
+        },
+        checkedAt: new Date().toISOString(),
       },
-      { status: 503 }
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+          "X-Content-Type-Options": "nosniff",
+        },
+      }
     );
   }
 
   try {
-    // 1. SELECT query test on early_access_leads table
-    const { count: leadsCount, error: leadsError } = await supabase
+    // 1. Verify SELECT access on early_access_leads
+    const { error: leadsError } = await supabase
       .from("early_access_leads")
-      .select("*", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true });
 
     if (leadsError) {
-      console.error("[HEALTH CHECK ERROR - early_access_leads]:", leadsError.message);
+      console.error("[HEALTH CHECK ERROR]: Datastore query check failed on leads:", leadsError.message);
       return NextResponse.json(
         {
-          status: "ERROR",
-          table: "early_access_leads",
-          message: leadsError.message,
+          status: "degraded",
+          services: {
+            web: "healthy",
+            datastore: "unavailable",
+          },
+          checkedAt: new Date().toISOString(),
         },
-        { status: 500 }
+        {
+          status: 503,
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+            "X-Content-Type-Options": "nosniff",
+          },
+        }
       );
     }
 
-    // 2. SELECT query test on contact_inquiries table
-    const { count: contactCount, error: contactError } = await supabase
+    // 2. Verify SELECT access on contact_inquiries
+    const { error: contactError } = await supabase
       .from("contact_inquiries")
-      .select("*", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true });
 
     if (contactError) {
-      console.error("[HEALTH CHECK ERROR - contact_inquiries]:", contactError.message);
+      console.error("[HEALTH CHECK ERROR]: Datastore query check failed on contacts:", contactError.message);
       return NextResponse.json(
         {
-          status: "ERROR",
-          table: "contact_inquiries",
-          message: contactError.message,
+          status: "degraded",
+          services: {
+            web: "healthy",
+            datastore: "unavailable",
+          },
+          checkedAt: new Date().toISOString(),
         },
-        { status: 500 }
+        {
+          status: 503,
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+            "X-Content-Type-Options": "nosniff",
+          },
+        }
       );
     }
 
+    // Hardened Public Response:
+    // Does NOT reveal internal row counts, table names, or database technology details.
     return NextResponse.json(
       {
-        status: "HEALTHY",
-        database: "SUPABASE_POSTGRESQL_VERIFIED",
-        tables: {
-          early_access_leads: {
-            exists: true,
-            accessible: true,
-            rowCount: leadsCount,
-          },
-          contact_inquiries: {
-            exists: true,
-            accessible: true,
-            rowCount: contactCount,
-          },
+        status: "operational",
+        services: {
+          web: "healthy",
+          datastore: "healthy",
         },
         checkedAt: new Date().toISOString(),
       },
@@ -77,10 +97,23 @@ export async function GET() {
       }
     );
   } catch (err: any) {
-    console.error("[HEALTH CHECK EXCEPTION]:", err.message);
+    console.error("[HEALTH CHECK UNEXPECTED EXCEPTION]:", err.message);
     return NextResponse.json(
-      { status: "ERROR", message: "Health check query failed" },
-      { status: 500 }
+      {
+        status: "degraded",
+        services: {
+          web: "healthy",
+          datastore: "unavailable",
+        },
+        checkedAt: new Date().toISOString(),
+      },
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+          "X-Content-Type-Options": "nosniff",
+        },
+      }
     );
   }
 }
