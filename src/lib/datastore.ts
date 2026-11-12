@@ -1,7 +1,13 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+// In serverless environments (Netlify / AWS Lambda), process.cwd() is read-only (/var/task).
+// Use os.tmpdir() (/tmp) when deployed in serverless environments.
+const DATA_DIR =
+  process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL
+    ? path.join(os.tmpdir(), ".data")
+    : path.join(process.cwd(), ".data");
 
 function ensureDirectoryExists() {
   try {
