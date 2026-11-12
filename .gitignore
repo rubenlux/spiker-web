@@ -29,8 +29,9 @@ yarn-error.log*
 # local datastore
 /.data/
 
-# vercel
+# vercel & netlify
 .vercel
+.netlify
 
 # typescript
 *.tsbuildinfo

@@ -100,6 +100,28 @@ async function runTestSuite() {
   const rawLeads = fs.readFileSync(leadsFile, "utf-8");
   assert(rawLeads.includes(testEmail), "Persisted leads file contains verified test email");
 
+  // TEST SUITE 5: Supabase SQL Schema & Migration Verification
+  console.log("\n--- 5. Supabase SQL Schema & Security Rules ---");
+  const migrationPath = path.resolve(process.cwd(), "supabase/migrations/20260212000000_create_spiker_tables.sql");
+  assert(fs.existsSync(migrationPath), "Migration SQL file exists in supabase/migrations/");
+
+  const sqlContent = fs.readFileSync(migrationPath, "utf-8");
+  assert(sqlContent.includes("CREATE TABLE IF NOT EXISTS public.early_access_leads"), "SQL defines early_access_leads table");
+  assert(sqlContent.includes("CREATE TABLE IF NOT EXISTS public.contact_inquiries"), "SQL defines contact_inquiries table");
+  assert(sqlContent.includes("idx_early_access_leads_email_unique"), "SQL includes case-insensitive unique email index");
+  assert(sqlContent.includes("ENABLE ROW LEVEL SECURITY"), "SQL enforces Row Level Security (RLS) on all tables");
+  assert(sqlContent.includes("pgcrypto"), "SQL enables pgcrypto extension for gen_random_uuid()");
+
+  // TEST SUITE 6: Netlify Configuration Verification
+  console.log("\n--- 6. Netlify Configuration & Next.js 15 Adapter ---");
+  const netlifyTomlPath = path.resolve(process.cwd(), "netlify.toml");
+  assert(fs.existsSync(netlifyTomlPath), "netlify.toml exists in root");
+
+  const tomlContent = fs.readFileSync(netlifyTomlPath, "utf-8");
+  assert(tomlContent.includes("@netlify/plugin-nextjs"), "netlify.toml configures @netlify/plugin-nextjs adapter");
+  assert(tomlContent.includes("X-Frame-Options"), "netlify.toml configures global security headers");
+  assert(tomlContent.includes("command = \"npm run build\""), "netlify.toml defines npm run build build command");
+
   console.log("\n=================================================");
   console.log(`AUDIT RESULTS: ${passed} PASSED | ${failed} FAILED`);
   console.log("=================================================");

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, sanitizeString } from "@/lib/rateLimit";
-import { saveContactInquiry } from "@/lib/datastore";
+import { persistContactInquiry } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
       clientIpMasked: clientIp.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.***.***"),
     };
 
-    // 4. Local persistence guarantee
-    const saved = saveContactInquiry(inquiryRecord);
-    console.log(`[SPIKER CONTACT INQUIRY STORED]: ${ticketId} - ${email} (${inquiryType}) - Local Persist: ${saved}`);
+    // 4. Persistence (Supabase PostgreSQL with local datastore fail-safe)
+    const { saved, storageTarget } = await persistContactInquiry(inquiryRecord);
+    console.log(`[SPIKER CONTACT INQUIRY STORED]: ${ticketId} - ${email} (${inquiryType}) - Target: ${storageTarget} - Persist: ${saved}`);
 
     // 5. Configurable Webhook Forwarding
     let webhookStatus: "DELIVERED" | "FAILED" | "NOT_CONFIGURED" = "NOT_CONFIGURED";

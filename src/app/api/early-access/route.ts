@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, sanitizeString } from "@/lib/rateLimit";
-import { saveEarlyAccessLead } from "@/lib/datastore";
+import { persistEarlyAccessLead } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -93,21 +93,21 @@ export async function POST(req: NextRequest) {
       clientIpMasked: clientIp.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.***.***"),
     };
 
-    // 4. Persistence & duplicate detection
-    const { isDuplicate, saved } = saveEarlyAccessLead(record);
+    // 4. Persistence & duplicate detection (Supabase PostgreSQL with local datastore fail-safe)
+    const { isDuplicate, saved, storageTarget, message: dbMessage } = await persistEarlyAccessLead(record);
 
     if (isDuplicate) {
       return NextResponse.json(
         {
           success: false,
           isDuplicate: true,
-          message: "An early access application with this email address has already been recorded in our test cohort registry.",
+          message: dbMessage || "An early access application with this email address has already been recorded in our test cohort registry.",
         },
         { status: 409 }
       );
     }
 
-    console.log(`[SPIKER EARLY ACCESS LEAD STORED]: ${referenceId} - ${email} (${userType}) - Local Persist: ${saved}`);
+    console.log(`[SPIKER EARLY ACCESS LEAD STORED]: ${referenceId} - ${email} (${userType}) - Target: ${storageTarget} - Persist: ${saved}`);
 
     // 5. Configurable Webhook Forwarding
     let webhookStatus: "DELIVERED" | "FAILED" | "NOT_CONFIGURED" = "NOT_CONFIGURED";
