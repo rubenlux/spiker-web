@@ -90,3 +90,4 @@ flowchart LR
 - **Phase 4.4:** Binary Framing, Packet MTU Slicing, and Reliable Selective ACK Engine.
 - **Phase 4.5:** Local SQLCipher Database, Store-and-Forward Queue, and Opportunistic Relaying.
 - **Phase 4.6:** Low-Bitrate Voice Streaming (Opus Codec @ 6–12 kbps) & Field Stress Testing.
+

@@ -124,3 +124,4 @@ Nodes transmit fragmented binary TLV packets (text messages, audio frames, sync 
 | **Handshake Response Timeout** | 3,000 ms | 5,000 ms | Discard session keys, reset state |
 | **Frame Link ACK Timeout** | 350 ms | 1,200 ms | Retransmit frame (max 3 retries) |
 | **Session Resumption Window** | 30 minutes | 60 minutes | Invalidate token, force full handshake |
+

@@ -113,3 +113,4 @@ To prevent flash memory exhaustion on constrained mobile hardware:
   - Standard Direct Messages: 24 hours TTL.
   - Large Audio / Telemetry Attachments: 6 hours TTL.
 - **Automatic Eviction:** When disk storage exceeds 90% of the allocated cap, a background vacuum evicts expired and delivered bulk attachments using a Least-Recently-Used (LRU) priority eviction strategy.
+

@@ -99,3 +99,4 @@ To prevent duplicate processing caused by radio multi-path or mesh store-and-for
 2. **64-bit Anti-Replay Sliding Window:**
    - Any packet with `Sequence Number` older than `HighestSeq - 64` is immediately dropped.
    - A 64-bit bitmask tracks which of the last 64 sequence numbers have been observed. Duplicate sequence numbers are dropped before cryptographic decryption.
+

@@ -67,3 +67,4 @@ Both `/api/early-access` and `/api/contact` now enforce:
 3. **Next.js Production Build:**
    - Command: `npm run build`
    - Output: **Compiled in 7.7s**, all 16 static routes prerendered without errors.
+

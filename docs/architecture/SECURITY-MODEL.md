@@ -65,3 +65,4 @@ While current SPIKER builds rely on Ed25519 and X25519 (classical 128-bit securi
 - Target algorithm: **ML-KEM (FIPS 203 / Kyber-768)** combined with X25519 in a dual-KEM construction:
   $$\text{SharedSecret} = \text{HKDF}(\text{SS}_{X25519} \parallel \text{SS}_{\text{ML-KEM-768}})$$
 - Scheduled for Phase 4.6 evaluation to ensure long-term resilience against "Harvest Now, Decrypt Later" adversaries.
+

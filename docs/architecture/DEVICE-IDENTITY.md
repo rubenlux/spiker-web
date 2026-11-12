@@ -83,3 +83,4 @@ Because SPIKER operates without a central Certificate Authority (CA):
    - During the first ad-hoc radio handshake between unverified peers, the protocol computes a 4-word mnemonic or 6-digit decimal SAS from the shared handshake hash:
      $$\text{SAS} = \text{KDF}(\text{HandshakeHash}) \pmod{10^6}$$
    - Users verbally compare the SAS to ensure no Man-in-the-Middle (MitM) active interception.
+

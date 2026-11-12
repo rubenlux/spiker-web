@@ -58,16 +58,62 @@ async function verifyDeployment() {
     assert(false, "Security headers probe failed", e.message);
   }
 
-  // 3. Early Access API Submission
-  console.log("\n--- 3. Testing Early Access API (/api/early-access) ---");
+  // 3. Health Endpoint Verification
+  console.log("\n--- 3. Testing Health Endpoint (/api/health) ---");
+  try {
+    const healthRes = await fetch(`${BASE_URL}/api/health`);
+    const healthJson = await healthRes.json();
+    assert(healthRes.status === 200, "GET /api/health responds with 200 OK");
+    assert(healthJson.status === "operational", "Health status reports operational");
+    assert(healthJson.services?.web === "healthy" && healthJson.services?.datastore === "healthy", "Services report healthy");
+    assert(!healthJson.tableName && !healthJson.count, "Health does NOT expose internal table names or row counts");
+
+    const healthPost = await fetch(`${BASE_URL}/api/health`, { method: "POST" });
+    assert(healthPost.status === 405, "POST /api/health returns 405 Method Not Allowed");
+  } catch (e) {
+    assert(false, "Health endpoint probe exception", e.message);
+  }
+
+  // 4. API Security Hardening Checks (415 Media Type, 413 Payload Limit, 405 Method Rejection)
+  console.log("\n--- 4. Testing API Security Guards (415, 413, 405) ---");
+  try {
+    // 415 Unsupported Media Type
+    const resBadType = await fetch(`${BASE_URL}/api/early-access`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "not-json",
+    });
+    assert(resBadType.status === 415, "POST /api/early-access rejects non-JSON Content-Type with 415");
+
+    // 413 Payload Too Large (send > 50KB)
+    const largeBody = JSON.stringify({ fullName: "X".repeat(60000) });
+    const resOversized = await fetch(`${BASE_URL}/api/early-access`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: largeBody,
+    });
+    assert(resOversized.status === 413, "POST /api/early-access rejects payload > 50KB with 413");
+
+    // 405 Method Not Allowed on GET
+    const resGetEA = await fetch(`${BASE_URL}/api/early-access`);
+    assert(resGetEA.status === 405, "GET /api/early-access returns 405 Method Not Allowed");
+
+    const resGetContact = await fetch(`${BASE_URL}/api/contact`);
+    assert(resGetContact.status === 405, "GET /api/contact returns 405 Method Not Allowed");
+  } catch (e) {
+    assert(false, "API security guard test exception", e.message);
+  }
+
+  // 5. Early Access API Valid Submission & Duplicate Rejection
+  console.log("\n--- 5. Testing Early Access Live Supabase Persistence ---");
   const uniqueEmail = `qa-audit-${Date.now()}@spiker.test`;
   const eaPayload = {
-    fullName: "QA Live Validation Engineer",
+    fullName: "QA Phase 3.3 Security Auditor",
     email: uniqueEmail,
-    country: "Spain",
+    country: "Switzerland",
     deviceModel: "Google Pixel 8 Pro",
     userType: "partner",
-    intendedUse: "Netlify production build link-layer validation",
+    intendedUse: "Phase 3.3 live production verification and security audit",
     consent: true,
   };
 
@@ -92,14 +138,14 @@ async function verifyDeployment() {
     assert(false, "Early Access API live test exception", e.message);
   }
 
-  // 4. Contact Form API Submission
-  console.log("\n--- 4. Testing Contact Inquiries API (/api/contact) ---");
+  // 6. Contact Form API Submission
+  console.log("\n--- 6. Testing Contact Inquiries Live Supabase Persistence ---");
   const contactPayload = {
     name: "Dr. Alicia Mendez",
-    email: "alicia.mendez@disaster-response.org",
+    email: `alicia.mendez-${Date.now()}@disaster-response.org`,
     organization: "International Rescue Unit",
     inquiryType: "enterprise",
-    message: "Verifying live Netlify function submission for emergency radio evaluations.",
+    message: "Verifying live Netlify function submission with hardened Phase 3.3 security headers.",
   };
 
   try {
@@ -124,4 +170,3 @@ async function verifyDeployment() {
 }
 
 verifyDeployment();
-

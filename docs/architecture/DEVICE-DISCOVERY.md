@@ -92,3 +92,4 @@ Offset | Length | Field Name         | Value / Description
 ### 3.3 Windows 10/11
 - Utilizes the `Windows.Devices.WiFiDirect` namespace and `BluetoothLEAdvertisementWatcher`.
 - Requires elevation for automated P2P GO role assignment if not initiated via the standard Windows pairing prompt.
+
