@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.early_access_leads (
     user_type TEXT NOT NULL DEFAULT 'personal' CHECK (user_type IN ('personal', 'business', 'partner', 'organization')),
     device_model TEXT DEFAULT 'Standard Android',
     intended_use TEXT DEFAULT 'General off-grid testing',
+    consent_given BOOLEAN NOT NULL DEFAULT true,
     client_ip_masked TEXT,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'waitlisted', 'invited')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),

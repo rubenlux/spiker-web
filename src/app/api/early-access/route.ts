@@ -93,23 +93,36 @@ export async function POST(req: NextRequest) {
       clientIpMasked: clientIp.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.***.***"),
     };
 
-    // 4. Persistence & duplicate detection (Supabase PostgreSQL with local datastore fail-safe)
-    const { isDuplicate, saved, storageTarget, message: dbMessage } = await persistEarlyAccessLead(record);
+    // 4. Persistence & duplicate detection (Strict Supabase PostgreSQL)
+    const dbResult = await persistEarlyAccessLead(record);
 
-    if (isDuplicate) {
+    if (!dbResult.success) {
+      if (dbResult.isDuplicate) {
+        return NextResponse.json(
+          {
+            success: false,
+            isDuplicate: true,
+            message: dbResult.message || "An early access application with this email address has already been recorded in our test cohort registry.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const statusCode = dbResult.errorCode === "DATABASE_UNAVAILABLE" ? 503 : 500;
       return NextResponse.json(
         {
           success: false,
-          isDuplicate: true,
-          message: dbMessage || "An early access application with this email address has already been recorded in our test cohort registry.",
+          errorCode: dbResult.errorCode,
+          message: dbResult.message || "Unable to record application. Please try again later.",
         },
-        { status: 409 }
+        { status: statusCode }
       );
     }
 
-    console.log(`[SPIKER EARLY ACCESS LEAD STORED]: ${referenceId} - ${email} (${userType}) - Target: ${storageTarget} - Persist: ${saved}`);
+    const confirmedReferenceId = dbResult.data?.referenceId || referenceId;
+    console.log(`[SPIKER EARLY ACCESS LEAD STORED IN POSTGRESQL]: ${confirmedReferenceId} - ${email} (${userType})`);
 
-    // 5. Configurable Webhook Forwarding
+    // 5. Configurable Webhook Forwarding (fires ONLY after successful DB storage)
     let webhookStatus: "DELIVERED" | "FAILED" | "NOT_CONFIGURED" = "NOT_CONFIGURED";
     const webhookUrl = process.env.EARLY_ACCESS_WEBHOOK_URL;
 
@@ -118,7 +131,7 @@ export async function POST(req: NextRequest) {
         const webhookRes = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(record),
+          body: JSON.stringify({ ...record, referenceId: confirmedReferenceId }),
           signal: AbortSignal.timeout(5000), // 5s timeout
         });
 
@@ -137,14 +150,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        referenceId,
+        referenceId: confirmedReferenceId,
         webhookStatus,
-        message: "Early access application successfully validated and recorded in our evaluation registry.",
-        note: webhookUrl
-          ? webhookStatus === "DELIVERED"
-            ? "External webhook integration synchronized."
-            : "External webhook delivery queued for retry."
-          : "Lead safely recorded in local evaluation registry (webhook not configured).",
+        message: "Early access application successfully validated and permanently stored in database registry.",
       },
       {
         status: 200,

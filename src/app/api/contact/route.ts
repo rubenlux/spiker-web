@@ -83,11 +83,25 @@ export async function POST(req: NextRequest) {
       clientIpMasked: clientIp.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.***.***"),
     };
 
-    // 4. Persistence (Supabase PostgreSQL with local datastore fail-safe)
-    const { saved, storageTarget } = await persistContactInquiry(inquiryRecord);
-    console.log(`[SPIKER CONTACT INQUIRY STORED]: ${ticketId} - ${email} (${inquiryType}) - Target: ${storageTarget} - Persist: ${saved}`);
+    // 4. Persistence (Strict Supabase PostgreSQL)
+    const dbResult = await persistContactInquiry(inquiryRecord);
 
-    // 5. Configurable Webhook Forwarding
+    if (!dbResult.success) {
+      const statusCode = dbResult.errorCode === "DATABASE_UNAVAILABLE" ? 503 : 500;
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: dbResult.errorCode,
+          message: dbResult.message || "Unable to submit inquiry at this time. Please try again shortly.",
+        },
+        { status: statusCode }
+      );
+    }
+
+    const confirmedTicketId = dbResult.data?.ticketId || ticketId;
+    console.log(`[SPIKER CONTACT INQUIRY STORED IN POSTGRESQL]: ${confirmedTicketId} - ${email} (${inquiryType})`);
+
+    // 5. Configurable Webhook Forwarding (fires ONLY after successful DB storage)
     let webhookStatus: "DELIVERED" | "FAILED" | "NOT_CONFIGURED" = "NOT_CONFIGURED";
     const contactWebhookUrl = process.env.CONTACT_WEBHOOK_URL;
 
@@ -96,7 +110,7 @@ export async function POST(req: NextRequest) {
         const webhookRes = await fetch(contactWebhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(inquiryRecord),
+          body: JSON.stringify({ ...inquiryRecord, ticketId: confirmedTicketId }),
           signal: AbortSignal.timeout(5000),
         });
 
@@ -115,14 +129,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        ticketId,
+        ticketId: confirmedTicketId,
         webhookStatus,
-        message: "Your message has been received by the SPIKER solutions engineering team.",
-        note: contactWebhookUrl
-          ? webhookStatus === "DELIVERED"
-            ? "External webhook integration synchronized."
-            : "External webhook delivery queued."
-          : "Inquiry safely logged in local registry (webhook not configured).",
+        message: "Your message has been securely received and recorded in our enterprise inquiry registry.",
       },
       {
         status: 200,

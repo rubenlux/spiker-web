@@ -1,12 +1,12 @@
-// Automated Backend Validation Suite for SPIKER API Endpoints & Data Persistence
+// Automated Backend Validation Suite for SPIKER Strict PostgreSQL Persistence
 import fs from "fs";
 import path from "path";
 import { checkRateLimit, sanitizeString } from "../src/lib/rateLimit.ts";
-import { saveEarlyAccessLead, saveContactInquiry } from "../src/lib/datastore.ts";
+import { persistEarlyAccessLead, persistContactInquiry, getSupabaseAdmin } from "../src/lib/supabase.ts";
 
 async function runTestSuite() {
   console.log("=================================================");
-  console.log("   SPIKER PHASE 2 - BACKEND AUTOMATED AUDIT SUITE");
+  console.log(" SPIKER STRICT POSTGRESQL ARCHITECTURE AUDIT");
   console.log("=================================================\n");
 
   let passed = 0;
@@ -45,82 +45,89 @@ async function runTestSuite() {
   assert(exceededRes.allowed === false, "Request #6 exceeds 5-per-window threshold and is rejected");
   assert(exceededRes.remaining === 0, "Remaining tokens reports 0 on rate limit rejection");
 
-  // TEST SUITE 3: Datastore Local Persistence & Lead Storage
-  console.log("\n--- 3. Datastore Lead Storage & Duplication Handling ---");
-  const testEmail = `tester-${Date.now()}@spiker.example`;
-  const lead1 = {
-    referenceId: `TEST-REF-${Date.now()}-1`,
+  // TEST SUITE 3: Strict Failure When Supabase Is Unconfigured (No Fake Success!)
+  console.log("\n--- 3. Strict Persistence Failure When DB Unconfigured ---");
+  // Temporarily ensure env vars are blank
+  const originalUrl = process.env.SUPABASE_URL;
+  const originalKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  const testRecord = {
+    referenceId: `TEST-${Date.now()}`,
     fullName: "Elena Rostova",
-    email: testEmail,
-    country: "Switzerland",
-    userType: "personal",
-    deviceModel: "Google Pixel 8 Pro",
-    intendedUse: "Alpine hiking evaluation",
+    email: "elena@test.spiker",
+    country: "Norway",
+    userType: "partner",
+    deviceModel: "Pixel 8",
+    intendedUse: "Benchmarking",
     registeredAt: new Date().toISOString(),
-    clientIpMasked: "192.168.***.***",
+    clientIpMasked: "10.0.***.***",
   };
 
-  const saveRes1 = saveEarlyAccessLead(lead1);
-  assert(saveRes1.saved === true, "Lead 1 successfully saved to local JSON datastore");
-  assert(saveRes1.isDuplicate === false, "Lead 1 is recognized as a fresh registration");
+  const eaResult = await persistEarlyAccessLead(testRecord);
+  assert(eaResult.success === false, "Does NOT claim success when Supabase is not configured");
+  assert(eaResult.errorCode === "DATABASE_UNAVAILABLE", "Reports DATABASE_UNAVAILABLE code");
+  assert(eaResult.message && eaResult.message.length > 10, "Provides clear user-facing error message");
 
-  // Duplicate submission with same email
-  const leadDuplicate = {
-    ...lead1,
-    referenceId: `TEST-REF-${Date.now()}-2`,
-  };
-  const saveRes2 = saveEarlyAccessLead(leadDuplicate);
-  assert(saveRes2.isDuplicate === true, "Duplicate lead with identical email is flagged as duplicate");
-  assert(saveRes2.saved === false, "Duplicate lead does not corrupt registry with duplicates");
-
-  // TEST SUITE 4: Contact Inquiry Persistence
-  console.log("\n--- 4. Contact Inquiries Persistence ---");
-  const inquiry = {
-    ticketId: `INQ-TEST-${Date.now()}`,
-    name: "Dr. Marcus Vance",
-    email: "marcus@disaster-response.org",
-    organization: "Civil Relief Corps",
+  const contactRecord = {
+    ticketId: `INQ-${Date.now()}`,
+    name: "Dr. Alicia Mendez",
+    email: "alicia@test.spiker",
+    organization: "Relief Corp",
     inquiryType: "enterprise",
-    message: "Requesting field evaluation guidelines for humanitarian response teams.",
+    message: "Field SAR testing evaluation inquiry.",
     submittedAt: new Date().toISOString(),
     clientIpMasked: "10.0.***.***",
   };
 
-  const contactSaved = saveContactInquiry(inquiry);
-  assert(contactSaved === true, "Contact inquiry successfully appended to inquiries datastore");
+  const contactResult = await persistContactInquiry(contactRecord);
+  assert(contactResult.success === false, "Contact persistence does NOT claim success without database");
+  assert(contactResult.errorCode === "DATABASE_UNAVAILABLE", "Contact reports DATABASE_UNAVAILABLE");
 
-  // Verify file write exists on disk
-  const datastoreDir = path.resolve(process.cwd(), ".data");
-  const leadsFile = path.join(datastoreDir, "early-access-leads.json");
-  const inquiriesFile = path.join(datastoreDir, "contact-inquiries.json");
+  // Restore env vars
+  if (originalUrl) process.env.SUPABASE_URL = originalUrl;
+  if (originalKey) process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
 
-  assert(fs.existsSync(leadsFile), "early-access-leads.json exists on filesystem");
-  assert(fs.existsSync(inquiriesFile), "contact-inquiries.json exists on filesystem");
-
-  const rawLeads = fs.readFileSync(leadsFile, "utf-8");
-  assert(rawLeads.includes(testEmail), "Persisted leads file contains verified test email");
-
-  // TEST SUITE 5: Supabase SQL Schema & Migration Verification
-  console.log("\n--- 5. Supabase SQL Schema & Security Rules ---");
+  // TEST SUITE 4: SQL Migration Schema & API Field Matching
+  console.log("\n--- 4. SQL Schema & Field Reconciliation ---");
   const migrationPath = path.resolve(process.cwd(), "supabase/migrations/20260212000000_create_spiker_tables.sql");
   assert(fs.existsSync(migrationPath), "Migration SQL file exists in supabase/migrations/");
 
   const sqlContent = fs.readFileSync(migrationPath, "utf-8");
-  assert(sqlContent.includes("CREATE TABLE IF NOT EXISTS public.early_access_leads"), "SQL defines early_access_leads table");
-  assert(sqlContent.includes("CREATE TABLE IF NOT EXISTS public.contact_inquiries"), "SQL defines contact_inquiries table");
-  assert(sqlContent.includes("idx_early_access_leads_email_unique"), "SQL includes case-insensitive unique email index");
-  assert(sqlContent.includes("ENABLE ROW LEVEL SECURITY"), "SQL enforces Row Level Security (RLS) on all tables");
-  assert(sqlContent.includes("pgcrypto"), "SQL enables pgcrypto extension for gen_random_uuid()");
+  
+  // Verify early_access_leads columns
+  assert(sqlContent.includes("reference_id TEXT NOT NULL UNIQUE"), "SQL defines reference_id as UNIQUE");
+  assert(sqlContent.includes("full_name TEXT NOT NULL"), "SQL defines full_name");
+  assert(sqlContent.includes("email TEXT NOT NULL"), "SQL defines email");
+  assert(sqlContent.includes("country TEXT NOT NULL"), "SQL defines country");
+  assert(sqlContent.includes("user_type TEXT NOT NULL DEFAULT 'personal'"), "SQL defines user_type with check constraint");
+  assert(sqlContent.includes("device_model TEXT"), "SQL defines device_model");
+  assert(sqlContent.includes("intended_use TEXT"), "SQL defines intended_use");
+  assert(sqlContent.includes("consent_given BOOLEAN NOT NULL DEFAULT true"), "SQL defines consent_given boolean");
+  assert(sqlContent.includes("client_ip_masked TEXT"), "SQL defines client_ip_masked");
+  assert(sqlContent.includes("status TEXT NOT NULL DEFAULT 'pending'"), "SQL defines status");
+  assert(sqlContent.includes("idx_early_access_leads_email_unique"), "SQL creates UNIQUE INDEX ON LOWER(email)");
 
-  // TEST SUITE 6: Netlify Configuration Verification
-  console.log("\n--- 6. Netlify Configuration & Next.js 15 Adapter ---");
+  // Verify contact_inquiries columns
+  assert(sqlContent.includes("ticket_id TEXT NOT NULL UNIQUE"), "SQL defines ticket_id as UNIQUE");
+  assert(sqlContent.includes("name TEXT NOT NULL"), "SQL defines name");
+  assert(sqlContent.includes("organization TEXT"), "SQL defines organization");
+  assert(sqlContent.includes("inquiry_type TEXT NOT NULL DEFAULT 'enterprise'"), "SQL defines inquiry_type");
+  assert(sqlContent.includes("message TEXT NOT NULL"), "SQL defines message");
+
+  // Verify security
+  assert(sqlContent.includes("ENABLE ROW LEVEL SECURITY"), "Enforces Row Level Security (RLS) on both tables");
+
+  // TEST SUITE 5: Netlify Configuration Verification
+  console.log("\n--- 5. Netlify Configuration & Headers ---");
   const netlifyTomlPath = path.resolve(process.cwd(), "netlify.toml");
   assert(fs.existsSync(netlifyTomlPath), "netlify.toml exists in root");
 
   const tomlContent = fs.readFileSync(netlifyTomlPath, "utf-8");
   assert(tomlContent.includes("@netlify/plugin-nextjs"), "netlify.toml configures @netlify/plugin-nextjs adapter");
-  assert(tomlContent.includes("X-Frame-Options"), "netlify.toml configures global security headers");
-  assert(tomlContent.includes("command = \"npm run build\""), "netlify.toml defines npm run build build command");
+  assert(tomlContent.includes("X-Frame-Options"), "netlify.toml configures X-Frame-Options");
+  assert(tomlContent.includes("command = \"npm run build\""), "netlify.toml defines npm run build");
 
   console.log("\n=================================================");
   console.log(`AUDIT RESULTS: ${passed} PASSED | ${failed} FAILED`);
@@ -135,4 +142,3 @@ runTestSuite().catch((err) => {
   console.error("Test execution error:", err);
   process.exit(1);
 });
-

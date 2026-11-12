@@ -1,5 +1,4 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { saveEarlyAccessLead as saveEarlyAccessLeadLocal, saveContactInquiry as saveContactInquiryLocal } from "./datastore";
 
 // Ensure this client is NEVER initialized on client-side
 let supabaseAdmin: SupabaseClient | null = null;
@@ -27,8 +26,8 @@ export function getSupabaseAdmin(): SupabaseClient | null {
       },
     });
     return supabaseAdmin;
-  } catch (err) {
-    console.error("[SUPABASE INIT ERROR]:", err);
+  } catch (err: any) {
+    console.error("[SUPABASE INIT ERROR]:", err.message);
     return null;
   }
 }
@@ -56,135 +55,159 @@ export interface ContactRecord {
   clientIpMasked: string;
 }
 
-/**
- * Stores early access lead into Supabase PostgreSQL with local datastore fallback.
- * Strictly guarantees duplicate email detection and zero data loss.
- */
-export async function persistEarlyAccessLead(record: EarlyAccessRecord): Promise<{
-  saved: boolean;
+export type PersistenceResult<T = Record<string, any>> = {
+  success: boolean;
   isDuplicate: boolean;
-  storageTarget: "supabase" | "local_fallback";
+  errorCode?: "DATABASE_UNAVAILABLE" | "DUPLICATE_REGISTRATION" | "TRANSACTION_FAILED";
   message?: string;
-}> {
+  data?: T;
+};
+
+/**
+ * Persists an early access lead strictly to Supabase PostgreSQL.
+ * Guarantees duplicate email rejection via PostgreSQL unique constraint (code 23505).
+ * Does NOT fake success or fallback to ephemeral /tmp storage.
+ */
+export async function persistEarlyAccessLead(
+  record: EarlyAccessRecord
+): Promise<PersistenceResult<{ id: string; referenceId: string; createdAt: string }>> {
   const supabase = getSupabaseAdmin();
 
-  if (supabase) {
-    try {
-      // 1. Check for duplicate email (case-insensitive)
-      const { data: existingLead, error: checkError } = await supabase
-        .from("early_access_leads")
-        .select("id, email")
-        .ilike("email", record.email)
-        .maybeSingle();
-
-      if (existingLead) {
-        return {
-          saved: false,
-          isDuplicate: true,
-          storageTarget: "supabase",
-          message: "An early access application with this email address has already been recorded in our test cohort registry.",
-        };
-      }
-
-      if (checkError && checkError.code !== "PGRST116") {
-        console.warn("[SUPABASE QUERY WARNING]: Duplicate check returned code:", checkError.code, checkError.message);
-      }
-
-      // 2. Insert record
-      const { error: insertError } = await supabase
-        .from("early_access_leads")
-        .insert({
-          reference_id: record.referenceId,
-          full_name: record.fullName,
-          email: record.email.toLowerCase(),
-          country: record.country,
-          user_type: record.userType,
-          device_model: record.deviceModel,
-          intended_use: record.intendedUse,
-          client_ip_masked: record.clientIpMasked,
-        });
-
-      if (!insertError) {
-        return {
-          saved: true,
-          isDuplicate: false,
-          storageTarget: "supabase",
-        };
-      }
-
-      // PostgreSQL 23505 = unique_violation
-      if (insertError.code === "23505" || insertError.message.includes("unique")) {
-        return {
-          saved: false,
-          isDuplicate: true,
-          storageTarget: "supabase",
-          message: "An early access application with this email address has already been recorded in our test cohort registry.",
-        };
-      }
-
-      console.error("[SUPABASE INSERT ERROR]: Failed to persist in PostgreSQL:", insertError.message);
-      console.warn("[STORAGE FALLBACK]: Diverting lead to atomic local datastore to prevent data loss.");
-    } catch (err: any) {
-      console.error("[SUPABASE EXCEPTION]:", err.message);
-      console.warn("[STORAGE FALLBACK]: Diverting lead to atomic local datastore.");
-    }
-  } else {
-    console.info("[STORAGE NOTICE]: Supabase environment variables not detected. Using secure local datastore.");
+  if (!supabase) {
+    console.error(
+      "[DATABASE CRITICAL]: Supabase is not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in Netlify environment variables."
+    );
+    return {
+      success: false,
+      isDuplicate: false,
+      errorCode: "DATABASE_UNAVAILABLE",
+      message: "The registration system is temporarily undergoing database setup. Please try again shortly.",
+    };
   }
 
-  // Fallback to local datastore (tested in Phase 2)
-  const localResult = saveEarlyAccessLeadLocal(record);
-  return {
-    saved: localResult.saved,
-    isDuplicate: localResult.isDuplicate,
-    storageTarget: "local_fallback",
-  };
+  try {
+    const { data, error } = await supabase
+      .from("early_access_leads")
+      .insert({
+        reference_id: record.referenceId,
+        full_name: record.fullName,
+        email: record.email.toLowerCase(),
+        country: record.country,
+        user_type: record.userType,
+        device_model: record.deviceModel,
+        intended_use: record.intendedUse,
+        consent_given: true,
+        client_ip_masked: record.clientIpMasked,
+      })
+      .select("id, reference_id, created_at")
+      .single();
+
+    if (error) {
+      // PostgreSQL Error Code 23505: unique_violation
+      if (
+        error.code === "23505" ||
+        error.message.toLowerCase().includes("unique") ||
+        error.message.toLowerCase().includes("duplicate")
+      ) {
+        return {
+          success: false,
+          isDuplicate: true,
+          errorCode: "DUPLICATE_REGISTRATION",
+          message: "An early access application with this email address has already been recorded in our test cohort registry.",
+        };
+      }
+
+      console.error("[SUPABASE INSERT FAILED]:", error.message, `(Code: ${error.code})`);
+      return {
+        success: false,
+        isDuplicate: false,
+        errorCode: "TRANSACTION_FAILED",
+        message: "Unable to process application due to a database transaction failure. Please try again later.",
+      };
+    }
+
+    return {
+      success: true,
+      isDuplicate: false,
+      data: {
+        id: data.id,
+        referenceId: data.reference_id,
+        createdAt: data.created_at,
+      },
+    };
+  } catch (err: any) {
+    console.error("[SUPABASE UNEXPECTED EXCEPTION]:", err.message);
+    return {
+      success: false,
+      isDuplicate: false,
+      errorCode: "TRANSACTION_FAILED",
+      message: "An unexpected error occurred while communicating with the database.",
+    };
+  }
 }
 
 /**
- * Stores contact inquiry into Supabase PostgreSQL with local datastore fallback.
+ * Persists an enterprise / partner contact inquiry strictly to Supabase PostgreSQL.
+ * Does NOT fake success or fallback to ephemeral /tmp storage.
  */
-export async function persistContactInquiry(record: ContactRecord): Promise<{
-  saved: boolean;
-  storageTarget: "supabase" | "local_fallback";
-}> {
+export async function persistContactInquiry(
+  record: ContactRecord
+): Promise<PersistenceResult<{ id: string; ticketId: string; createdAt: string }>> {
   const supabase = getSupabaseAdmin();
 
-  if (supabase) {
-    try {
-      const { error: insertError } = await supabase
-        .from("contact_inquiries")
-        .insert({
-          ticket_id: record.ticketId,
-          name: record.name,
-          email: record.email.toLowerCase(),
-          organization: record.organization,
-          inquiry_type: record.inquiryType,
-          message: record.message,
-          client_ip_masked: record.clientIpMasked,
-        });
-
-      if (!insertError) {
-        return {
-          saved: true,
-          storageTarget: "supabase",
-        };
-      }
-
-      console.error("[SUPABASE CONTACT INSERT ERROR]:", insertError.message);
-      console.warn("[STORAGE FALLBACK]: Diverting inquiry to local datastore.");
-    } catch (err: any) {
-      console.error("[SUPABASE EXCEPTION]:", err.message);
-      console.warn("[STORAGE FALLBACK]: Diverting inquiry to local datastore.");
-    }
-  } else {
-    console.info("[STORAGE NOTICE]: Supabase environment variables not detected. Using local datastore.");
+  if (!supabase) {
+    console.error(
+      "[DATABASE CRITICAL]: Supabase is not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in Netlify environment variables."
+    );
+    return {
+      success: false,
+      isDuplicate: false,
+      errorCode: "DATABASE_UNAVAILABLE",
+      message: "The inquiry dispatch system is temporarily undergoing database setup. Please try again shortly or contact support directly.",
+    };
   }
 
-  const localSaved = saveContactInquiryLocal(record);
-  return {
-    saved: localSaved,
-    storageTarget: "local_fallback",
-  };
-}
+  try {
+    const { data, error } = await supabase
+      .from("contact_inquiries")
+      .insert({
+        ticket_id: record.ticketId,
+        name: record.name,
+        email: record.email.toLowerCase(),
+        organization: record.organization,
+        inquiry_type: record.inquiryType,
+        message: record.message,
+        client_ip_masked: record.clientIpMasked,
+      })
+      .select("id, ticket_id, created_at")
+      .single();
 
+    if (error) {
+      console.error("[SUPABASE CONTACT INSERT FAILED]:", error.message, `(Code: ${error.code})`);
+      return {
+        success: false,
+        isDuplicate: false,
+        errorCode: "TRANSACTION_FAILED",
+        message: "Failed to record inquiry in database. Please try again later.",
+      };
+    }
+
+    return {
+      success: true,
+      isDuplicate: false,
+      data: {
+        id: data.id,
+        ticketId: data.ticket_id,
+        createdAt: data.created_at,
+      },
+    };
+  } catch (err: any) {
+    console.error("[SUPABASE CONTACT UNEXPECTED EXCEPTION]:", err.message);
+    return {
+      success: false,
+      isDuplicate: false,
+      errorCode: "TRANSACTION_FAILED",
+      message: "An unexpected error occurred while transmitting your inquiry.",
+    };
+  }
+}
